@@ -41,7 +41,6 @@ View(xml_data)
 library(readr)
 library(tidyverse)
 library(stringr)
-library(lubridate)
 
 #reasing in as a text 
 log_file <- read_tsv("data/log_file.log") %>% 
@@ -53,22 +52,36 @@ ip_pattern <- "[0-9]+.[0-9]+.[0-9]+.[0-9]"
 
 log_file <- log_file %>% 
 mutate(date = str_replace_all(str_sub(log, 1, 5)," ", "")) %>% # extract date and remove white space
-mutate(time = str_replace_all(str_sub(log, 6, 15)," ", "")) %>% # extract time and remove white space
-mutate(info = str_sub(log, 16, 22)) %>% 
-mutate(detail = str_sub(log, 23, -1)) %>% 
+filter(date != "initi") %>% 
 filter(nchar(date) >2)  %>% #remove order numbers so only have rows with a date
-mutate(ip_address = str_extract(detail,ip_pattern)) %>% # regex extractip addresses
-filter(date != "initi")
-# REGEX extract ip address
-# filter warning and ... if failed 
-# convert to date and time
+mutate(date = as.Date(date,
+                      format = "%m/%d") ) %>%
+mutate(time = str_replace_all(str_sub(log, 6, 15)," ", "")) %>% # extract time and remove white space
+mutate(time = chron::chron(times=time)) %>% 
+  mutate(info = str_sub(log, 16, 22)) %>% 
+mutate(detail = str_sub(log, 23, -1)) %>% 
+mutate(ip_address = str_extract(detail,ip_pattern)) # regex extractip addresses
+
+View(log_file)
+
+# List only warning notifications
+log_warnings <- log_file %>% 
+  filter(info == "WARNING")
+
+#Check ip address listings for high numbers - could then do visualisation on this
+ip_check <- log_file %>% 
+  drop_na(ip_address) %>% 
+  group_by(ip_address, date) %>% 
+  summarise(n = n())
+
+
+# text mine failed - count common words and string detect
+# loop to look through words
+
+
 # try other log files
 # count common words
+# highlight fact could visualize failures, ip address numbers
 
-# create git repo
 
-
-nchar(log_file$time[3])
-view(log_file)
-log_file$detail[14]
-log_file$date[31]
+# parse types for XML
