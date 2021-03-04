@@ -5,6 +5,7 @@ library(tidyverse)
 #bring in XML file
 clacks <- xmlParse(file = "data/Food_Hygiene_Information_Scheme_-_Clackmannanshire_Council.xml")
 
+# TO DO   col_types()
 clacks_root = xmlRoot(clacks)  #open xml and find fist node / starting point
 xmlName(clacks_root) #check: "FHRSEstablishment"
 xmlSize(clacks_root) #2 children
@@ -31,9 +32,9 @@ add_xml_data <- function(xml_update){
 
 xml_data <- add_xml_data(angus)
 
-nrow(xml_data) #1562
+nrow(xml_data) #1562 - as expected
 
-View(xml_data)
+# View(xml_data)
 # <- <- <- <- <- <- <- <- <- <- <- <- <- <- <- 
 
 # XML files
@@ -62,7 +63,7 @@ mutate(time = chron::chron(times=time)) %>%
 mutate(detail = str_sub(log, 23, -1)) %>% 
 mutate(ip_address = str_extract(detail,ip_pattern)) # regex extractip addresses
 
-View(log_file)
+# View(log_file)
 
 # List only warning notifications
 log_warnings <- log_file %>% 
@@ -74,14 +75,58 @@ ip_check <- log_file %>%
   group_by(ip_address, date) %>% 
   summarise(n = n())
 
+# Bring up any mention of failure or errors - could have added new variable to main df with ife
+failures <-  log_file %>%
+  mutate(detail = str_to_lower(detail)) %>% # so as not to loose casing differences
+  filter(grepl("failed | error",detail))
+# View(failures)
+
+#checking instances of certain words - earch individual 
+log_file_words <- 
+  log_file %>%
+  select(detail) %>% 
+  unnest_tokens(word, detail)
+
+log_file_words %>%  
+  # anti_join(stop_words) %>%
+  count(word, sort = TRUE)
+
 
 # text mine failed - count common words and string detect
 # loop to look through words
 
+# <- <- <- <- <- <- <- <- <- <- <- <- <- <- <- 
+#----------JSON ---------------
 
-# try other log files
-# count common words
-# highlight fact could visualize failures, ip address numbers
+library(jsonlite)
+library(readr)
+# method 1 - to a list
+json_file <- read_file("data/json_file.json")
+
+prettify(json_file)
+
+json_data <- parse_json(json_file) # creates list
+
+json_data_ul <- unlist(json_data)
+json_df <- as.data.frame(json_data_ul)
+class(json_df) # dataframe
 
 
-# parse types for XML
+## ----unnest play
+df <- tibble(
+  x = 1:3,
+  y = c("a", "d,e,f", "g,h")
+)
+
+df %>%
+  transform(y = strsplit(y, ",")) %>%
+  unnest(y)
+
+df <- tibble(
+  x = 1:2,
+  y = list(
+    tibble(z = 1),
+    tibble(z = 3:4)
+  )
+)
+df %>% unnest(y)
